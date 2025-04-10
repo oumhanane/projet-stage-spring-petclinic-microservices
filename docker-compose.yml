@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+
+  config-server:
+    image: springcommunity/spring-petclinic-config-server
+    ports:
+      - "8888:8888"
+    env_file:
+      - spring-petclinic-config-server/.env
+    networks:
+      - petclinic
+
+  discovery-server:
+    image: springcommunity/spring-petclinic-discovery-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    env_file:
+      - spring-petclinic-discovery-server/.env
+    networks:
+      - petclinic
+
+  api-gateway:
+    image: springcommunity/spring-petclinic-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-server
+      - config-server
+    command: /bin/sh -c "dockerize -wait http://config-server:8888 -timeout 30s java -jar /app/api-gateway.jar"
+    env_file:
+      - spring-petclinic-api-gateway/.env
+    networks:
+      - petclinic
+
+  customers-service:
+    image: springcommunity/spring-petclinic-customers-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      - discovery-server
+    env_file:
+      - spring-petclinic-customers-service/.env
+    networks:
+      - petclinic
+
+  vets-service:
+    image: springcommunity/spring-petclinic-vets-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      - discovery-server
+    env_file:
+      - spring-petclinic-vets-service/.env
+
+    networks:
+      - petclinic
+
+  visits-service:
+    image: springcommunity/spring-petclinic-visits-service
+    ports:
+      - "8082:8080" 
+    depends_on:
+      - discovery-server
+    env_file:
+      - spring-petclinic-visits-service/.env
+    networks:
+      - petclinic
+
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - petclinic
+
+networks:
+  petclinic:
+    driver: bridge
